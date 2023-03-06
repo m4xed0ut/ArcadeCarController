@@ -7,3 +7,12 @@ The handling of the controller is inspired by games like OutRun, Ridge Racer and
 
 I also wrote the controller's raycast to only disable the car's forces when it is not grounded and not to freeze the rigidbody to make it more natural.
 
+# Controls
+
+Up Arrow - Throttle
+
+Down Arrow - Brakes/Reverse
+
+Left, Right Arrow - Steering
+
+Space - Handbrake
