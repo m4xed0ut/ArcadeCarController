@@ -1,5 +1,5 @@
 # Arcade-RaycastCarController
-Second go at writing a vehicle controller from the ground up after taking notes from my DroneController. This time it's an arcade car controller, which is a lot more advanced!
+Second go at writing a vehicle controller from the ground up using C# and Unity after taking notes from my DroneController. This time it's an arcade car controller, which is a lot more advanced!
 
 The goal for my new challenge was to write a script for operating a 3D car with a single rigidbody object with a box collider, NO wheel colliders and 2 target force objects with Trigger Colliders (one in the front, one beside the car), and where the wheels that the script animates are just transforms.
 
