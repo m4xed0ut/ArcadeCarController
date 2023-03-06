@@ -38,10 +38,10 @@ public class CarController : MonoBehaviour
 
     void Update()
     {
-
         if (Keyboard.current != null && Keyboard.current.upArrowKey.IsActuated(1))
         {
-            car.transform.Rotate(0, Input.GetAxis("Horizontal") * steerSpeed * Time.deltaTime, 0, Space.Self);
+            if (isGrounded)
+                car.transform.Rotate(0, Input.GetAxis("Horizontal") * steerSpeed * Time.deltaTime, 0, Space.Self);
 
             wheelFL.localEulerAngles = new Vector3(0, 0, 90) + Vector3.up * Mathf.Clamp(Input.GetAxis("Horizontal") * 100, -45, 45);
             wheelFR.localEulerAngles = new Vector3(0, 0, 90) + Vector3.up * Mathf.Clamp(Input.GetAxis("Horizontal") * 100, -45, 45);
@@ -56,7 +56,8 @@ public class CarController : MonoBehaviour
                 wheelFL.localEulerAngles = new Vector3(0, 0, 90) + Vector3.up * -Mathf.Clamp(Input.GetAxis("Horizontal") * 100, -45, 45);
                 wheelFR.localEulerAngles = new Vector3(0, 0, 90) + Vector3.up * -Mathf.Clamp(Input.GetAxis("Horizontal") * 100, -45, 45);
 
-                car.transform.Rotate(0, Input.GetAxis("Horizontal") * handBrake * Time.deltaTime, 0, Space.Self);
+                if (isGrounded)
+                    car.transform.Rotate(0, Input.GetAxis("Horizontal") * handBrake * Time.deltaTime, 0, Space.Self);
 
                 wheelRL.localEulerAngles = new Vector3(0, 0, 90);
                 wheelRR.localEulerAngles = new Vector3(0, 0, 90);
@@ -74,7 +75,8 @@ public class CarController : MonoBehaviour
             wheelRL.transform.Rotate(0, -Input.GetAxis("Vertical") * -accel * 1000 * Time.deltaTime, 0);
             wheelRR.transform.Rotate(0, -Input.GetAxis("Vertical") * -accel * 1000 * Time.deltaTime, 0);
 
-            car.transform.Rotate(0, -Input.GetAxis("Horizontal") * steerSpeed * Time.deltaTime, 0, Space.Self);
+            if (isGrounded)
+                car.transform.Rotate(0, -Input.GetAxis("Horizontal") * steerSpeed * Time.deltaTime, 0, Space.Self);
 
         }
     }
