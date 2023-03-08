@@ -5,7 +5,7 @@ The goal for my new challenge was the same - to write a satisfactory script from
 
 The handling of the controller is inspired by games like OutRun, Ridge Racer and DiRT 5. 
 
-I also wrote the controller's raycast to only disable the car's forces when it is not grounded and not to freeze the rigidbody to make it more natural.
+I also wrote the controller's raycast to only disable the car's forces when it is not grounded and not to freeze the rigidbody's rotation to make it more natural.
 
 Like my Drone Controller, it uses Unity's new Input System (although with a few lines making use of the old Input Manager).
 
