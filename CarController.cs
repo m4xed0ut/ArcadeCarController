@@ -6,7 +6,6 @@ using UnityEngine.InputSystem;
 public class CarController : MonoBehaviour
 {
 
-    float raycastDistance = 0.3f;
     private bool isGrounded = true;
     private float fallSpeed = 100;
     float gearRatio = 30;
@@ -33,6 +32,7 @@ public class CarController : MonoBehaviour
     [Header("Raycast")]
     public Transform raycastTarget;
     public LayerMask ground;
+    public float raycastDistance = 0.3f;
 
     [Header("VFX")]
     public GameObject smoke;
@@ -128,16 +128,13 @@ public class CarController : MonoBehaviour
                 accel -= 135;
             }
         }
-        else
+        if (car.GetComponent<Rigidbody>().velocity.sqrMagnitude <= 3000)
         {
-            if (car.GetComponent<Rigidbody>().velocity.sqrMagnitude <= 3000)
-            {
-                Debug.Log("Shifting down");
-                gearRatio = 30;
-                maxRpm = 3000;
-                idle = 400;
-                accel = 1300;
-            }
+            Debug.Log("Shifting down");
+            gearRatio = 30;
+            maxRpm = 3000;
+            idle = 400;
+            accel = 1300;
         }
 
     }
