@@ -1,4 +1,4 @@
-# Arcade-RaycastCarController
+# ArcadeCarController-NoWheelColliders
 Second go at writing a vehicle controller from the ground up using C# and Unity after taking notes from my DroneController.
 
 This one's a simple Arcade car controller that needs only a single rigidbody component with a box collider and 2 target force objects with Trigger Colliders (one in the front, one beside the car), and where the wheels that the script animates are just transforms. The Raycast disables the car's input and its forces when it's not grounded.
