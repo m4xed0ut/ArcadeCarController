@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -47,20 +45,60 @@ public class CarController : MonoBehaviour
         car.GetComponent<Rigidbody>().mass = weight;
         car.GetComponent<Rigidbody>().centerOfMass = com;
     }
+   
 
-    // Update stores everything that modifies the car's transforms.
-    void Update()
+    // FixedUpdate stores forces applied to the Rigidbody.
+    void FixedUpdate()
     {
-        if (isGrounded && car.GetComponent<Rigidbody>().velocity.magnitude >= 1)
+        RaycastHit groundHit;
+        if (Physics.Raycast(raycastTarget.position, -raycastTarget.up, out groundHit, raycastDistance, ground))
         {
-            car.transform.Rotate(0, Input.GetAxis("Horizontal") * steerSpeed * Time.deltaTime, 0, Space.Self);
+            isGrounded = true;
+            Debug.DrawRay(raycastTarget.position, -raycastTarget.up);
+            Debug.Log("Car is grounded");
+        }
+        else
+        {
+            isGrounded = false;
+            Debug.DrawRay(raycastTarget.position, -raycastTarget.up);
+            Debug.Log("Car is NOT grounded");
+        }
 
-            if (Keyboard.current != null && Keyboard.current.spaceKey.IsActuated(1))
+        if (isGrounded)
+        {
+            if (Keyboard.current.upArrowKey.isPressed)
             {
-                car.transform.Rotate(0, Input.GetAxis("Horizontal") * handBrake * Time.deltaTime, 0, Space.Self);
-                smoke.SetActive(true);
-                trail.SetActive(true);
-                tireScreech.SetActive(true);
+                car.GetComponent<Rigidbody>().AddForce(targetForward.forward * accel * 1000 * Time.deltaTime);
+
+                if (Keyboard.current.spaceKey.isPressed)
+                {
+                    car.GetComponent<Rigidbody>().AddForce(-targetForward.forward * accel * 1000 * Time.deltaTime);
+                }
+            }
+
+            if (Keyboard.current.downArrowKey.isPressed)
+            {
+                car.GetComponent<Rigidbody>().AddForce(-targetForward.forward * accel * 1000 * Time.deltaTime);
+            }
+
+            if (car.GetComponent<Rigidbody>().velocity.magnitude >= 1)
+            {
+                car.transform.Rotate(0, Input.GetAxis("Horizontal") * steerSpeed * Time.deltaTime, 0, Space.Self);
+
+                if (Keyboard.current.spaceKey.isPressed)
+                {
+                    car.transform.Rotate(0, Input.GetAxis("Horizontal") * handBrake * Time.deltaTime, 0, Space.Self);
+                    smoke.SetActive(true);
+                    trail.SetActive(true);
+                    tireScreech.SetActive(true);
+                }
+                else
+                {
+                    smoke.SetActive(false);
+                    trail.SetActive(false);
+                    tireScreech.SetActive(false);
+                }
+
             }
             else
             {
@@ -68,7 +106,6 @@ public class CarController : MonoBehaviour
                 trail.SetActive(false);
                 tireScreech.SetActive(false);
             }
-
         }
         else
         {
@@ -77,11 +114,13 @@ public class CarController : MonoBehaviour
             tireScreech.SetActive(false);
         }
 
-    }
+        wheelFL.transform.Rotate(Input.GetAxis("Vertical") * car.GetComponent<Rigidbody>().velocity.magnitude * 1000 * Time.deltaTime, 0, 0);
+        wheelFR.transform.Rotate(Input.GetAxis("Vertical") * car.GetComponent<Rigidbody>().velocity.magnitude * 1000 * Time.deltaTime, 0, 0);
+        wheelRL.transform.Rotate(Input.GetAxis("Vertical") * car.GetComponent<Rigidbody>().velocity.magnitude * 1000 * Time.deltaTime, 0, 0);
+        wheelRR.transform.Rotate(Input.GetAxis("Vertical") * car.GetComponent<Rigidbody>().velocity.magnitude * 1000 * Time.deltaTime, 0, 0);
 
-    // FixedUpdate stores forces applied to the Rigidbody.
-    void FixedUpdate()
-    {
+        engine.pitch = Mathf.Clamp(car.GetComponent<Rigidbody>().velocity.sqrMagnitude, 400, 3000) * Time.deltaTime / 30;
+
         if (car.GetComponent<Rigidbody>().velocity.magnitude >= topSpeed)
         {
             accel = 0;
@@ -89,52 +128,6 @@ public class CarController : MonoBehaviour
         else
         {
             accel = power;
-        }
-
-        wheelFL.transform.Rotate(Input.GetAxis("Vertical") * car.GetComponent<Rigidbody>().velocity.magnitude * 1000 * Time.deltaTime, 0, 0);
-        wheelFR.transform.Rotate(Input.GetAxis("Vertical") * car.GetComponent<Rigidbody>().velocity.magnitude * 1000 * Time.deltaTime, 0, 0);
-        wheelRL.transform.Rotate(Input.GetAxis("Vertical") * car.GetComponent<Rigidbody>().velocity.magnitude * 1000 * Time.deltaTime, 0, 0);
-        wheelRR.transform.Rotate(Input.GetAxis("Vertical") * car.GetComponent<Rigidbody>().velocity.magnitude * 1000 * Time.deltaTime, 0, 0);
-
-        engine.pitch = Mathf.Clamp(car.GetComponent<Rigidbody>().velocity.sqrMagnitude, 400, 3000) * Time.deltaTime / 30;
-        
-        RaycastHit groundHit;
-        if (Physics.Raycast(raycastTarget.position, -raycastTarget.up, out groundHit, raycastDistance, ground))
-        {
-            isGrounded = true;
-            Debug.DrawRay(raycastTarget.position, -raycastTarget.up * 10);
-            Debug.Log("Car is grounded");
-        }
-        else
-        {
-            isGrounded = false;
-            Debug.DrawRay(raycastTarget.position, -raycastTarget.up * 10);
-            Debug.Log("Car is NOT grounded");
-        }
-        
-        if (isGrounded)
-        {
-
-            if (Keyboard.current != null && Keyboard.current.upArrowKey.IsActuated(1))
-            {
-                car.GetComponent<Rigidbody>().drag = 0;
-                car.GetComponent<Rigidbody>().AddForce(targetForward.forward * accel * 1000 * Time.deltaTime);
-
-                if (Keyboard.current != null && Keyboard.current.spaceKey.IsActuated(1))
-                {
-                    car.GetComponent<Rigidbody>().AddForce(-targetForward.forward * accel * 1000 * Time.deltaTime);
-                }
-            }
-            else
-            {
-                car.GetComponent<Rigidbody>().drag = 0.2f;
-            }
-
-            if (Keyboard.current != null && Keyboard.current.downArrowKey.IsActuated(1))
-            {
-                car.GetComponent<Rigidbody>().drag = 0;
-                car.GetComponent<Rigidbody>().AddForce(-targetForward.forward * accel * 1000 * Time.deltaTime);
-            }
         }
     }
 }
