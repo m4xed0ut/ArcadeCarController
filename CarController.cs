@@ -12,6 +12,7 @@ public class CarController : MonoBehaviour
     public float handBrake = 1.3f;
     public float weight = 800;
     public float topSpeed = 50;
+    public float reverseAccel;
 
     [Header("Car Parts")]
     public GameObject car;
@@ -66,9 +67,11 @@ public class CarController : MonoBehaviour
 
         if (isGrounded)
         {
+            car.GetComponent<Rigidbody>().drag = 0.6f;
             if (Keyboard.current.upArrowKey.isPressed)
             {
-                car.GetComponent<Rigidbody>().AddForce(targetForward.forward * accel * 1000 * Time.deltaTime);
+               car.GetComponent<Rigidbody>().drag = 0;
+               car.GetComponent<Rigidbody>().AddForce(targetForward.forward * accel * 1000 * Time.deltaTime);
 
                 if (Keyboard.current.spaceKey.isPressed)
                 {
@@ -78,7 +81,8 @@ public class CarController : MonoBehaviour
 
             if (Keyboard.current.downArrowKey.isPressed)
             {
-                car.GetComponent<Rigidbody>().AddForce(-targetForward.forward * accel * 1000 * Time.deltaTime);
+                car.GetComponent<Rigidbody>().drag = 0;
+                car.GetComponent<Rigidbody>().AddForce(-targetForward.forward * reverseAccel * 1000 * Time.deltaTime);
             }
 
             if (car.GetComponent<Rigidbody>().velocity.magnitude >= 1)
@@ -112,6 +116,7 @@ public class CarController : MonoBehaviour
             smoke.SetActive(false);
             trail.SetActive(false);
             tireScreech.SetActive(false);
+            car.GetComponent<Rigidbody>().drag = 0;
         }
 
         wheelFL.transform.Rotate(Input.GetAxis("Vertical") * car.GetComponent<Rigidbody>().velocity.magnitude * 1000 * Time.deltaTime, 0, 0);
