@@ -8,11 +8,13 @@ public class CarController : MonoBehaviour
 
     [Header("Car Setup")]
     public float power;
-    public float steerSpeed = 1f;
-    public float handBrake = 1.3f;
-    public float weight = 800;
-    public float topSpeed = 50;
-    public float reverseAccel;
+    public float steerSpeed;
+    public float handBrake;
+    public float weight;
+    public float topSpeed;
+    public bool downForce = false;
+    public bool brake;
+    public float downForceValue;
 
     [Header("Car Parts")]
     public GameObject car;
@@ -47,8 +49,6 @@ public class CarController : MonoBehaviour
         car.GetComponent<Rigidbody>().centerOfMass = com;
     }
    
-
-    // FixedUpdate stores forces applied to the Rigidbody.
     void FixedUpdate()
     {
         RaycastHit groundHit;
@@ -67,42 +67,32 @@ public class CarController : MonoBehaviour
 
         if (isGrounded)
         {
-            car.GetComponent<Rigidbody>().drag = 0.6f;
             if (Keyboard.current.upArrowKey.isPressed)
             {
-               car.GetComponent<Rigidbody>().drag = 0;
                car.GetComponent<Rigidbody>().AddForce(targetForward.forward * accel * 1000 * Time.deltaTime);
-
-                if (Keyboard.current.spaceKey.isPressed)
-                {
-                    car.GetComponent<Rigidbody>().AddForce(-targetForward.forward * accel * 1000 * Time.deltaTime);
-                }
-            }
-
-            if (Keyboard.current.downArrowKey.isPressed)
-            {
-                car.GetComponent<Rigidbody>().drag = 0;
-                car.GetComponent<Rigidbody>().AddForce(-targetForward.forward * reverseAccel * 1000 * Time.deltaTime);
             }
 
             if (car.GetComponent<Rigidbody>().velocity.magnitude >= 1)
             {
                 car.transform.Rotate(0, Input.GetAxis("Horizontal") * steerSpeed * Time.deltaTime, 0, Space.Self);
 
-                if (Keyboard.current.spaceKey.isPressed)
+                if (brake == true)
                 {
-                    car.transform.Rotate(0, Input.GetAxis("Horizontal") * handBrake * Time.deltaTime, 0, Space.Self);
-                    smoke.SetActive(true);
-                    trail.SetActive(true);
-                    tireScreech.SetActive(true);
+                    if (Keyboard.current.spaceKey.isPressed)
+                    {
+                        car.GetComponent<Rigidbody>().AddForce(-targetForward.forward * accel * 1000 * Time.deltaTime);
+                        car.transform.Rotate(0, Input.GetAxis("Horizontal") * handBrake * Time.deltaTime, 0, Space.Self);
+                        smoke.SetActive(true);
+                        trail.SetActive(true);
+                        tireScreech.SetActive(true);
+                    }
+                    else
+                    {
+                        smoke.SetActive(false);
+                        trail.SetActive(false);
+                        tireScreech.SetActive(false);
+                    }
                 }
-                else
-                {
-                    smoke.SetActive(false);
-                    trail.SetActive(false);
-                    tireScreech.SetActive(false);
-                }
-
             }
             else
             {
@@ -116,7 +106,6 @@ public class CarController : MonoBehaviour
             smoke.SetActive(false);
             trail.SetActive(false);
             tireScreech.SetActive(false);
-            car.GetComponent<Rigidbody>().drag = 0;
         }
 
         wheelFL.transform.Rotate(Input.GetAxis("Vertical") * car.GetComponent<Rigidbody>().velocity.magnitude * 1000 * Time.deltaTime, 0, 0);
@@ -133,6 +122,18 @@ public class CarController : MonoBehaviour
         else
         {
             accel = power;
+        }
+
+        if (downForce == true)
+        {
+            if (Keyboard.current.leftArrowKey.isPressed || Keyboard.current.rightArrowKey.isPressed)
+            {
+                car.GetComponent<Rigidbody>().drag = downForceValue;
+            }
+            else
+            {
+                car.GetComponent<Rigidbody>().drag = 0;
+            }
         }
     }
 }
