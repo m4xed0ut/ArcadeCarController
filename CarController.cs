@@ -71,7 +71,7 @@ public class CarController : MonoBehaviour
             {
                car.GetComponent<Rigidbody>().AddForce(targetForward.forward * accel * 1000 * Time.deltaTime);
 
-                if (brake == true)
+                if (brake == true && car.GetComponent<Rigidbody>().velocity.magnitude >= 5)
                 {
                     if (Keyboard.current.spaceKey.isPressed)
                     {
