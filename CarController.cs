@@ -70,11 +70,6 @@ public class CarController : MonoBehaviour
             if (Keyboard.current.upArrowKey.isPressed)
             {
                car.GetComponent<Rigidbody>().AddForce(targetForward.forward * accel * 1000 * Time.deltaTime);
-            }
-
-            if (car.GetComponent<Rigidbody>().velocity.magnitude >= 1)
-            {
-                car.transform.Rotate(0, Input.GetAxis("Horizontal") * steerSpeed * Time.deltaTime, 0, Space.Self);
 
                 if (brake == true)
                 {
@@ -93,6 +88,11 @@ public class CarController : MonoBehaviour
                         tireScreech.SetActive(false);
                     }
                 }
+            }
+
+            if (car.GetComponent<Rigidbody>().velocity.magnitude >= 1)
+            {
+                car.transform.Rotate(0, Input.GetAxis("Horizontal") * steerSpeed * Time.deltaTime, 0, Space.Self);
             }
             else
             {
