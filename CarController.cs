@@ -1,20 +1,29 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[System.Serializable]
+public class Gear
+{
+    public float minPitch;
+    public float maxPitch;
+    public float minSpeed;
+    public float maxSpeed;
+}
+
 public class CarController : MonoBehaviour
 {
+    float raycastDistance = 1;
     private bool isGrounded = true;
+    private float fallSpeed = 1000;
     private float accel;
 
     [Header("Car Setup")]
     public float power;
-    public float steerSpeed;
-    public float handBrake;
-    public float weight;
+    public float steerSpeed = 1f;
+    public float handBrake = 1.3f;
+    public float weight = 800;
     public float topSpeed;
-    public bool downForce = false;
-    public bool brake;
-    public float downForceValue;
+    public bool grip = true;
 
     [Header("Car Parts")]
     public GameObject car;
@@ -25,95 +34,167 @@ public class CarController : MonoBehaviour
 
     [Header("Target Force")]
     public Transform targetForward;
+    public Transform targetLeft;
 
     [Header("Raycast")]
     public Transform raycastTarget;
     public LayerMask ground;
-    public float raycastDistance = 0.3f;
-
-    [Header("VFX")]
-    public GameObject smoke;
-    public GameObject trail;
-
 
     [Header("SFX")]
     public AudioSource engine;
-    public GameObject tireScreech;
+    public Gear[] gears;
+    public int currentGearIndex = 0;
+    private float targetPitch;
+    private float currentPitch;
+    public float pitchSpeed = 5f;
 
-    Vector3 com;
+    [Header("VFX")]
+    public GameObject brakes;
+    public GameObject shadow;
 
 
     void Start()
     {
         car.GetComponent<Rigidbody>().mass = weight;
-        car.GetComponent<Rigidbody>().centerOfMass = com;
+
     }
-   
+
+    void Update()
+    {
+
+        if (isGrounded)
+        {
+            shadow.SetActive(true);
+        }
+        else
+        {
+            shadow.SetActive(false);
+        }
+
+        if (car.GetComponent<Rigidbody>().velocity.magnitude >= 1)
+        {
+            if (isGrounded)
+            {
+                car.transform.Rotate(0, Input.GetAxis("Horizontal") * steerSpeed * Time.deltaTime, 0, Space.Self);
+
+                if (Keyboard.current.downArrowKey.isPressed)
+                {
+                    car.GetComponent<Rigidbody>().drag = 0.5f;
+                    brakes.SetActive(true);
+                }
+                else
+                {
+                    car.GetComponent<Rigidbody>().drag = 0;
+                    brakes.SetActive(false);
+                }
+            }
+            else
+            {
+                car.GetComponent<Rigidbody>().drag = 0;
+                brakes.SetActive(false);
+            }
+
+            wheelFL.localEulerAngles = new Vector3(0, 0, 90) + Vector3.up * Mathf.Clamp(Input.GetAxis("Horizontal") * 100, -45, 45);
+            wheelFR.localEulerAngles = new Vector3(0, 0, 90) + Vector3.up * Mathf.Clamp(Input.GetAxis("Horizontal") * 100, -45, 45);
+
+            wheelFL.transform.Rotate(0, Input.GetAxis("Vertical") * accel * 1000 * Time.deltaTime, 0);
+            wheelFR.transform.Rotate(0, Input.GetAxis("Vertical") * accel * 1000 * Time.deltaTime, 0);
+            wheelRL.transform.Rotate(0, Input.GetAxis("Vertical") * accel * 1000 * Time.deltaTime, 0);
+            wheelRR.transform.Rotate(0, Input.GetAxis("Vertical") * accel * 1000 * Time.deltaTime, 0);
+
+            if (Keyboard.current.spaceKey.isPressed)
+            {
+                if (isGrounded)
+                    car.transform.Rotate(0, Input.GetAxis("Horizontal") * handBrake * Time.deltaTime, 0, Space.Self);
+
+                wheelRL.localEulerAngles = new Vector3(0, 0, 90);
+                wheelRR.localEulerAngles = new Vector3(0, 0, 90);
+
+            }
+        }
+
+        // Calculate the current speed based on the rigidbody's velocity magnitude
+        float speed = car.GetComponent<Rigidbody>().velocity.magnitude;
+
+        // Get the current gear
+        Gear currentGear = gears[currentGearIndex];
+
+        // Calculate the target pitch based on the current speed
+        float normalizedSpeed = Mathf.InverseLerp(currentGear.minSpeed, currentGear.maxSpeed, speed);
+        targetPitch = Mathf.Lerp(currentGear.minPitch, currentGear.maxPitch, normalizedSpeed);
+
+        // Smoothly change the pitch towards the target pitch
+        currentPitch = Mathf.Lerp(currentPitch, targetPitch, Time.deltaTime * pitchSpeed);
+
+        // Apply the pitch to the audio source
+        engine.pitch = currentPitch;
+
+        // Check if we need to shift gears
+        if (speed > currentGear.maxSpeed && currentGearIndex < gears.Length - 1)
+        {
+            currentGearIndex++;
+        }
+        else if (speed < currentGear.minSpeed && currentGearIndex > 0)
+        {
+            currentGearIndex--;
+        }
+    }
+
     void FixedUpdate()
     {
         RaycastHit groundHit;
+
         if (Physics.Raycast(raycastTarget.position, -raycastTarget.up, out groundHit, raycastDistance, ground))
         {
             isGrounded = true;
-            Debug.DrawRay(raycastTarget.position, -raycastTarget.up);
+            Debug.DrawRay(raycastTarget.position, -raycastTarget.up * 10);
             Debug.Log("Car is grounded");
         }
         else
         {
             isGrounded = false;
-            Debug.DrawRay(raycastTarget.position, -raycastTarget.up);
+            Debug.DrawRay(raycastTarget.position, -raycastTarget.up * 10);
             Debug.Log("Car is NOT grounded");
         }
 
+        // Downforce applied to the rigidbody
+        car.GetComponent<Rigidbody>().AddForce(Vector3.down * fallSpeed * 1000 * Time.deltaTime);
+
         if (isGrounded)
         {
+            // Keyboard controls - Throttle, Reverse/Brake, Handbrake
             if (Keyboard.current.upArrowKey.isPressed)
             {
-               car.GetComponent<Rigidbody>().AddForce(targetForward.forward * accel * 1000 * Time.deltaTime);
+                car.GetComponent<Rigidbody>().AddForce(targetForward.forward * accel * 1000 * Time.deltaTime);
 
-                if (brake == true && car.GetComponent<Rigidbody>().velocity.magnitude >= 5)
+                if (Keyboard.current.spaceKey.isPressed)
                 {
-                    if (Keyboard.current.spaceKey.isPressed)
+
+                    car.GetComponent<Rigidbody>().AddForce(-targetForward.forward * accel * 1000 * Time.deltaTime);
+                }
+
+                if (Keyboard.current.rightArrowKey.isPressed)
+                {
+                    if (grip && car.GetComponent<Rigidbody>().velocity.magnitude >= 70)
                     {
-                        car.GetComponent<Rigidbody>().AddForce(-targetForward.forward * accel * 1000 * Time.deltaTime);
-                        car.transform.Rotate(0, Input.GetAxis("Horizontal") * handBrake * Time.deltaTime, 0, Space.Self);
-                        smoke.SetActive(true);
-                        trail.SetActive(true);
-                        tireScreech.SetActive(true);
-                    }
-                    else
-                    {
-                        smoke.SetActive(false);
-                        trail.SetActive(false);
-                        tireScreech.SetActive(false);
+                        car.GetComponent<Rigidbody>().AddForce(targetLeft.right * accel * 1000 * Time.deltaTime);
                     }
                 }
-            }
 
-            if (car.GetComponent<Rigidbody>().velocity.magnitude >= 1)
-            {
-                car.transform.Rotate(0, Input.GetAxis("Horizontal") * steerSpeed * Time.deltaTime, 0, Space.Self);
+                if (Keyboard.current.leftArrowKey.isPressed)
+                {
+                    if (grip && car.GetComponent<Rigidbody>().velocity.magnitude >= 70)
+                    {
+                        car.GetComponent<Rigidbody>().AddForce(-targetLeft.right * accel * 1000 * Time.deltaTime);
+                    }
+                }
+
             }
             else
             {
-                smoke.SetActive(false);
-                trail.SetActive(false);
-                tireScreech.SetActive(false);
+                car.GetComponent<Rigidbody>().AddForce(Vector3.down * fallSpeed * 1000 * Time.deltaTime);
             }
         }
-        else
-        {
-            smoke.SetActive(false);
-            trail.SetActive(false);
-            tireScreech.SetActive(false);
-        }
-
-        wheelFL.transform.Rotate(Input.GetAxis("Vertical") * car.GetComponent<Rigidbody>().velocity.magnitude * 1000 * Time.deltaTime, 0, 0);
-        wheelFR.transform.Rotate(Input.GetAxis("Vertical") * car.GetComponent<Rigidbody>().velocity.magnitude * 1000 * Time.deltaTime, 0, 0);
-        wheelRL.transform.Rotate(Input.GetAxis("Vertical") * car.GetComponent<Rigidbody>().velocity.magnitude * 1000 * Time.deltaTime, 0, 0);
-        wheelRR.transform.Rotate(Input.GetAxis("Vertical") * car.GetComponent<Rigidbody>().velocity.magnitude * 1000 * Time.deltaTime, 0, 0);
-
-        engine.pitch = Mathf.Clamp(car.GetComponent<Rigidbody>().velocity.sqrMagnitude, 400, 3000) * Time.deltaTime / 30;
 
         if (car.GetComponent<Rigidbody>().velocity.magnitude >= topSpeed)
         {
@@ -122,18 +203,6 @@ public class CarController : MonoBehaviour
         else
         {
             accel = power;
-        }
-
-        if (downForce == true)
-        {
-            if (Keyboard.current.leftArrowKey.isPressed || Keyboard.current.rightArrowKey.isPressed)
-            {
-                car.GetComponent<Rigidbody>().drag = downForceValue;
-            }
-            else
-            {
-                car.GetComponent<Rigidbody>().drag = 0;
-            }
         }
     }
 }
