@@ -16,6 +16,8 @@ public class CarController : MonoBehaviour
     private bool isGrounded = true;
     private float fallSpeed = 1000;
     private float accel;
+    private float handling;
+    public bool forward = true;
 
     [Header("Car Setup")]
     public float power;
@@ -24,6 +26,7 @@ public class CarController : MonoBehaviour
     public float weight = 800;
     public float topSpeed;
     public bool grip = true;
+    public float gripAmount;
 
     [Header("Car Parts")]
     public GameObject car;
@@ -39,6 +42,7 @@ public class CarController : MonoBehaviour
     [Header("Raycast")]
     public Transform raycastTarget;
     public LayerMask ground;
+    public LayerMask ground1;
 
     [Header("SFX")]
     public AudioSource engine;
@@ -50,43 +54,62 @@ public class CarController : MonoBehaviour
 
     [Header("VFX")]
     public GameObject brakes;
+    public GameObject reverse;
     public GameObject shadow;
+    public GameObject smoke;
+    public GameObject sand;
 
 
     void Start()
     {
         car.GetComponent<Rigidbody>().mass = weight;
-
     }
 
     void Update()
     {
-
         if (isGrounded)
         {
             shadow.SetActive(true);
-        }
-        else
-        {
-            shadow.SetActive(false);
-        }
-
-        if (car.GetComponent<Rigidbody>().velocity.magnitude >= 1)
-        {
-            if (isGrounded)
+            if (forward && car.GetComponent<Rigidbody>().velocity.magnitude >= 1)
             {
                 car.transform.Rotate(0, Input.GetAxis("Horizontal") * steerSpeed * Time.deltaTime, 0, Space.Self);
 
-                if (Keyboard.current.downArrowKey.isPressed)
+
+                if (Keyboard.current.spaceKey.isPressed)
                 {
-                    car.GetComponent<Rigidbody>().drag = 0.5f;
-                    brakes.SetActive(true);
+                    car.transform.Rotate(0, Input.GetAxis("Horizontal") * handBrake * Time.deltaTime, 0, Space.Self);
+
+                    wheelRL.localEulerAngles = new Vector3(0, 0, 90);
+                    wheelRR.localEulerAngles = new Vector3(0, 0, 90);
+
                 }
-                else
+            }
+            if (!forward && car.GetComponent<Rigidbody>().velocity.magnitude >= 1)
+            {
+                car.transform.Rotate(0, -Input.GetAxis("Horizontal") * steerSpeed * Time.deltaTime, 0, Space.Self);
+
+                smoke.transform.localEulerAngles = new Vector3(0, 180, 0);
+                smoke.transform.localPosition = new Vector3(0, 0, -8);
+
+                if (Keyboard.current.spaceKey.isPressed)
                 {
-                    car.GetComponent<Rigidbody>().drag = 0;
-                    brakes.SetActive(false);
+                    car.transform.Rotate(0, -Input.GetAxis("Horizontal") * handBrake * Time.deltaTime, 0, Space.Self);
+
+                    wheelRL.localEulerAngles = new Vector3(0, 0, 90);
+                    wheelRR.localEulerAngles = new Vector3(0, 0, 90);
+
                 }
+            }
+            else
+            {
+                smoke.transform.localEulerAngles = new Vector3(0, 0, 0);
+                smoke.transform.localPosition = new Vector3(0, 0, 0);
+            }
+
+            if (Keyboard.current.downArrowKey.isPressed)
+            {
+                car.GetComponent<Rigidbody>().drag = 1.5f;
+                brakes.SetActive(true);
             }
             else
             {
@@ -101,16 +124,23 @@ public class CarController : MonoBehaviour
             wheelFR.transform.Rotate(0, Input.GetAxis("Vertical") * accel * 1000 * Time.deltaTime, 0);
             wheelRL.transform.Rotate(0, Input.GetAxis("Vertical") * accel * 1000 * Time.deltaTime, 0);
             wheelRR.transform.Rotate(0, Input.GetAxis("Vertical") * accel * 1000 * Time.deltaTime, 0);
+        }
+        else
+        {
+            shadow.SetActive(false);
+            car.GetComponent<Rigidbody>().drag = 0;
+            brakes.SetActive(false);
+        }
 
-            if (Keyboard.current.spaceKey.isPressed)
-            {
-                if (isGrounded)
-                    car.transform.Rotate(0, Input.GetAxis("Horizontal") * handBrake * Time.deltaTime, 0, Space.Self);
-
-                wheelRL.localEulerAngles = new Vector3(0, 0, 90);
-                wheelRR.localEulerAngles = new Vector3(0, 0, 90);
-
-            }
+        if (Keyboard.current.aKey.isPressed)
+        {
+            forward = true;
+            reverse.SetActive(false);
+        }
+        else if (Keyboard.current.zKey.isPressed)
+        {
+            forward = false;
+            reverse.SetActive(true);
         }
 
         // Calculate the current speed based on the rigidbody's velocity magnitude
@@ -129,14 +159,17 @@ public class CarController : MonoBehaviour
         // Apply the pitch to the audio source
         engine.pitch = currentPitch;
 
-        // Check if we need to shift gears
-        if (speed > currentGear.maxSpeed && currentGearIndex < gears.Length - 1)
+        if (forward)
         {
-            currentGearIndex++;
-        }
-        else if (speed < currentGear.minSpeed && currentGearIndex > 0)
-        {
-            currentGearIndex--;
+            // Check if we need to shift gears
+            if (speed > currentGear.maxSpeed && currentGearIndex < gears.Length - 1)
+            {
+                currentGearIndex++;
+            }
+            else if (speed < currentGear.minSpeed && currentGearIndex > 0)
+            {
+                currentGearIndex--;
+            }
         }
     }
 
@@ -146,12 +179,57 @@ public class CarController : MonoBehaviour
 
         if (Physics.Raycast(raycastTarget.position, -raycastTarget.up, out groundHit, raycastDistance, ground))
         {
+            sand.SetActive(false);
             isGrounded = true;
             Debug.DrawRay(raycastTarget.position, -raycastTarget.up * 10);
             Debug.Log("Car is grounded");
+            gripAmount = power;
+            //Rotating the car to fit the angle of the object below it
+            Quaternion newRotation = Quaternion.FromToRotation(transform.up, groundHit.normal) * transform.rotation;
+            transform.rotation = Quaternion.Slerp(transform.rotation, newRotation, 0.15f);
+
+            if (car.GetComponent<Rigidbody>().velocity.magnitude >= 20)
+            {
+                if (Keyboard.current.spaceKey.isPressed)
+                {
+                    smoke.SetActive(true);
+                }
+                else
+                {
+                    smoke.SetActive(false);
+                }
+            }
+            else
+            {
+                smoke.SetActive(false);
+            }
+
+        }
+        else if (Physics.Raycast(raycastTarget.position, -raycastTarget.up, out groundHit, raycastDistance, ground1))
+        {
+            smoke.SetActive(false);
+            isGrounded = true;
+            Debug.DrawRay(raycastTarget.position, -raycastTarget.up * 10);
+            Debug.Log("Car is grounded");
+            gripAmount = power / 2.5f;
+            //Rotating the car to fit the angle of the object below it
+            Quaternion newRotation = Quaternion.FromToRotation(transform.up, groundHit.normal) * transform.rotation;
+            transform.rotation = Quaternion.Slerp(transform.rotation, newRotation, 0.15f);
+
+
+            if (car.GetComponent<Rigidbody>().velocity.magnitude >= 20)
+            {
+                sand.SetActive(true);
+            }
+            else
+            {
+                sand.SetActive(false);
+            }
         }
         else
         {
+            smoke.SetActive(false);
+            sand.SetActive(false);
             isGrounded = false;
             Debug.DrawRay(raycastTarget.position, -raycastTarget.up * 10);
             Debug.Log("Car is NOT grounded");
@@ -163,7 +241,7 @@ public class CarController : MonoBehaviour
         if (isGrounded)
         {
             // Keyboard controls - Throttle, Reverse/Brake, Handbrake
-            if (Keyboard.current.upArrowKey.isPressed)
+            if (forward && Keyboard.current.upArrowKey.isPressed)
             {
                 car.GetComponent<Rigidbody>().AddForce(targetForward.forward * accel * 1000 * Time.deltaTime);
 
@@ -175,33 +253,61 @@ public class CarController : MonoBehaviour
 
                 if (Keyboard.current.rightArrowKey.isPressed)
                 {
-                    if (grip && car.GetComponent<Rigidbody>().velocity.magnitude >= 70)
+                    if (grip && car.GetComponent<Rigidbody>().velocity.magnitude >= 20)
                     {
-                        car.GetComponent<Rigidbody>().AddForce(targetLeft.right * accel * 1000 * Time.deltaTime);
+                        car.GetComponent<Rigidbody>().AddForce(targetLeft.right * handling * 1000 * Time.deltaTime);
                     }
                 }
 
                 if (Keyboard.current.leftArrowKey.isPressed)
                 {
-                    if (grip && car.GetComponent<Rigidbody>().velocity.magnitude >= 70)
+                    if (grip && car.GetComponent<Rigidbody>().velocity.magnitude >= 20)
                     {
-                        car.GetComponent<Rigidbody>().AddForce(-targetLeft.right * accel * 1000 * Time.deltaTime);
+                        car.GetComponent<Rigidbody>().AddForce(-targetLeft.right * handling * 1000 * Time.deltaTime);
+                    }
+                }
+            }
+
+            if (!forward && Keyboard.current.upArrowKey.isPressed)
+            {
+                car.GetComponent<Rigidbody>().AddForce(-targetForward.forward * accel * 1000 * Time.deltaTime);
+
+                if (Keyboard.current.spaceKey.isPressed)
+                {
+
+                    car.GetComponent<Rigidbody>().AddForce(targetForward.forward * accel * 1000 * Time.deltaTime);
+                }
+
+                if (Keyboard.current.rightArrowKey.isPressed)
+                {
+                    if (grip && car.GetComponent<Rigidbody>().velocity.magnitude >= 20)
+                    {
+                        car.GetComponent<Rigidbody>().AddForce(targetLeft.right * handling * 1000 * Time.deltaTime);
                     }
                 }
 
+                if (Keyboard.current.leftArrowKey.isPressed)
+                {
+                    if (grip && car.GetComponent<Rigidbody>().velocity.magnitude >= 20)
+                    {
+                        car.GetComponent<Rigidbody>().AddForce(-targetLeft.right * handling * 1000 * Time.deltaTime);
+                    }
+                }
             }
-            else
-            {
-                car.GetComponent<Rigidbody>().AddForce(Vector3.down * fallSpeed * 1000 * Time.deltaTime);
-            }
+        }
+        else
+        {
+            car.GetComponent<Rigidbody>().AddForce(Vector3.down * fallSpeed * 1000 * Time.deltaTime);
         }
 
         if (car.GetComponent<Rigidbody>().velocity.magnitude >= topSpeed)
         {
             accel = 0;
+            handling = 0;
         }
         else
         {
+            handling = gripAmount;
             accel = power;
         }
     }
